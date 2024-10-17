@@ -13,16 +13,16 @@ namespace TarodevController
     [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D))]
     public class PlayerController : MonoBehaviour, IPlayerController
     {
+        public InputReader Input;
+
         [SerializeField] private ScriptableStats _stats;
         private Rigidbody2D _rb;
         private CapsuleCollider2D _col;
         private FrameInput _frameInput;
         private Vector2 _frameVelocity;
         private bool _cachedQueryStartInColliders;
-        private SpriteRenderer _spriteRenderer;
 
         [SerializeField] private LayerMask _wallLayer;
-
 
         #region Interface
 
@@ -38,7 +38,6 @@ namespace TarodevController
         {
             _rb = GetComponent<Rigidbody2D>();
             _col = GetComponent<CapsuleCollider2D>();
-            _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
 
             _cachedQueryStartInColliders = Physics2D.queriesStartInColliders;
         }
@@ -53,9 +52,9 @@ namespace TarodevController
         {
             _frameInput = new FrameInput
             {
-                JumpDown = Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.C),
-                JumpHeld = Input.GetButton("Jump") || Input.GetKey(KeyCode.C),
-                Move = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"))
+                JumpDown = UnityEngine.Input.GetButtonDown("Jump") || UnityEngine.Input.GetKeyDown(KeyCode.C),
+                JumpHeld = UnityEngine.Input.GetButton("Jump") || UnityEngine.Input.GetKey(KeyCode.C),
+                Move = new Vector2(UnityEngine.Input.GetAxisRaw("Horizontal"), UnityEngine.Input.GetAxisRaw("Vertical"))
             };
 
             if (_stats.SnapInput)
@@ -97,7 +96,7 @@ namespace TarodevController
             bool groundHit = Physics2D.CapsuleCast(_col.bounds.center, _col.size, _col.direction, 0, Vector2.down, _stats.GrounderDistance, ~_stats.PlayerLayer);
             bool ceilingHit = Physics2D.CapsuleCast(_col.bounds.center, _col.size, _col.direction, 0, Vector2.up, _stats.GrounderDistance, ~_stats.PlayerLayer);
 
-            bool wallHit = Physics2D.CapsuleCast(_col.bounds.center, _col.size, _col.direction, 0, _spriteRenderer.flipX ? Vector2.left : Vector2.right, _stats.GrounderDistance, _wallLayer);
+            bool wallHit = Physics2D.CapsuleCast(_col.bounds.center, _col.size, _col.direction, 0, transform.localScale.x < 0 ? Vector2.left : Vector2.right, _stats.GrounderDistance, _wallLayer);
 
             // Hit a Ceiling
             if (ceilingHit) _frameVelocity.y = Mathf.Min(0, _frameVelocity.y);
@@ -145,6 +144,8 @@ namespace TarodevController
         private float _wallJumpDuration = 0.15f;
         private Vector2 _wallJumpPower = new Vector2(16f, 24f);
         private float _wallJumpCounter;
+        private float _wallJumpDirectionX;
+
         private bool HasBufferedJump => _bufferedJumpUsable && _time < _timeJumpWasPressed + _stats.JumpBuffer;
         private bool CanUseCoyote => _coyoteUsable && !_grounded && _time < _frameLeftGrounded + _stats.CoyoteTime;
 
@@ -193,8 +194,9 @@ namespace TarodevController
         {
             _wallSliding = false;
 
-            _spriteRenderer.flipX = !_spriteRenderer.flipX;
-            _frameVelocity = new Vector2(_spriteRenderer.flipX ? -_wallJumpPower.x : _wallJumpPower.x, _wallJumpPower.y);
+            _wallJumpDirectionX = -transform.localScale.x;
+            _frameVelocity = new Vector2(_wallJumpDirectionX * _wallJumpPower.x, _wallJumpPower.y);
+            Jumped?.Invoke();
         }
 
         #endregion

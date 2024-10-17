@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 namespace TarodevController
@@ -7,23 +8,27 @@ namespace TarodevController
     /// </summary>
     public class PlayerAnimator : MonoBehaviour
     {
-        [Header("References")] [SerializeField]
+        [Header("References")]
+        [SerializeField]
         private Animator _anim;
 
-        [SerializeField] private SpriteRenderer _sprite;
+        [SerializeField] private Transform _playerTransform;
 
-        [Header("Settings")] [SerializeField, Range(1f, 3f)]
+        [Header("Settings")]
+        [SerializeField, Range(1f, 3f)]
         private float _maxIdleSpeed = 2;
+        private bool _isFacingRight = true;
 
         [SerializeField] private float _maxTilt = 5;
         [SerializeField] private float _tiltSpeed = 20;
 
-        [Header("Particles")] [SerializeField] private ParticleSystem _jumpParticles;
+        [Header("Particles")][SerializeField] private ParticleSystem _jumpParticles;
         [SerializeField] private ParticleSystem _launchParticles;
         [SerializeField] private ParticleSystem _moveParticles;
         [SerializeField] private ParticleSystem _landParticles;
 
-        [Header("Audio Clips")] [SerializeField]
+        [Header("Audio Clips")]
+        [SerializeField]
         private AudioClip[] _footsteps;
 
         private AudioSource _source;
@@ -59,16 +64,22 @@ namespace TarodevController
 
             DetectGroundColor();
 
-            HandleSpriteFlip();
+            HandleCharacterFlip();
 
             HandleIdleSpeed();
 
             HandleCharacterTilt();
         }
 
-        private void HandleSpriteFlip()
+        private void HandleCharacterFlip()
         {
-            if (_player.FrameInput.x != 0) _sprite.flipX = _player.FrameInput.x < 0;
+            if (_isFacingRight && _player.FrameInput.x < 0 || !_isFacingRight && _player.FrameInput.x > 0)
+            {
+                _isFacingRight = !_isFacingRight;
+                Vector3 localScale = _playerTransform.localScale;
+                localScale.x *= -1;
+                _playerTransform.localScale = localScale;
+            }
         }
 
         private void HandleIdleSpeed()
@@ -101,7 +112,7 @@ namespace TarodevController
         private void OnGroundedChanged(bool grounded, float impact)
         {
             _grounded = grounded;
-            
+
             if (grounded)
             {
                 DetectGroundColor();
